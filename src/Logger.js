@@ -11,12 +11,6 @@
 const DEFAULT_LEVEL = 'WARN';
 const MODULE_LEVELS = {};
 
-if (typeof localStorage !== 'undefined') {
-  // we could just sort them ascending - and sequential match will leave us with proper
-  // eslint-disable-next-line
-  Object.keys(localStorage).sort().forEach((key) => { MODULE_LEVELS[key] = localStorage.getItem(key); });
-}
-
 export const isLevelEnabled = (actualLevel, levelToMatch) => {
   if (levelToMatch === 'OFF') return false;
   if (levelToMatch === actualLevel) return true;
@@ -52,7 +46,7 @@ export const componentMatchesLevel = (module, levelToMatch, map = undefined) => 
   const levels = map || MODULE_LEVELS;
   let levelDetected = DEFAULT_LEVEL;
 
-  Object.keys(levels).forEach((rule) => {
+  Object.keys(levels).sort().forEach((rule) => {
     if (isComponentMatch(module, rule)) { levelDetected = levels[rule]; }
   });
   return isLevelEnabled(levelDetected, levelToMatch);
@@ -66,13 +60,22 @@ class LoggerInstance {
 const setOption = (option, val) => { LoggerInstance.options[option] = val; };
 const getOption = option => (LoggerInstance.options[option]);
 
+const reset = () => {
+  if (typeof localStorage !== 'undefined') {
+    // we could just sort them ascending - and sequential match will leave us with proper
+    // eslint-disable-next-line
+    Object.keys(MODULE_LEVELS).forEach((key) => { delete MODULE_LEVELS[key]; });
+    Object.keys(localStorage).sort().forEach((key) => { MODULE_LEVELS[key] = localStorage.getItem(key); });
+  }
+};
+
 const of = (module) => {
   const prefix = `${module} |`;
 
   /* eslint-disable no-console */
   return {
     info: (...args) => {
-      LoggerInstance.calls.trace += 1;
+      LoggerInstance.calls.info += 1;
       if (getOption('output') && componentMatchesLevel(module, 'INFO')) { console.info(prefix, ...args); }
     },
     warn: (...args) => {
@@ -90,6 +93,8 @@ const of = (module) => {
   };
 };
 
-export const Logger = { of, calls: LoggerInstance.calls, setOption, getOption };
+reset();
 
-export default { of, calls: LoggerInstance.calls, setOption, getOption };
+export const Logger = { of, calls: LoggerInstance.calls, setOption, getOption, reset };
+
+export default { of, calls: LoggerInstance.calls, setOption, getOption, reset };
